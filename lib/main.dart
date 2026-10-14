@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'models/cart.dart';
 import 'models/product.dart';
+import 'models/wishlist.dart';
 import 'services/api_service.dart';
 import 'screens/cart_screen.dart';
 import 'screens/product_detail_screen.dart';
+import 'screens/wishlist_screen.dart';
 import 'widgets/cart_scope.dart';
+import 'widgets/wishlist_scope.dart';
 
 void main() {
   runApp(const MyApp());
@@ -20,10 +23,19 @@ class MyApp extends StatefulWidget {
 
 class _MyAppState extends State<MyApp> {
   final CartModel _cart = CartModel();
+  final WishlistModel _wishlist = WishlistModel();
+
+  @override
+  void initState() {
+    super.initState();
+    _cart.load();
+    _wishlist.load();
+  }
 
   @override
   void dispose() {
     _cart.dispose();
+    _wishlist.dispose();
     super.dispose();
   }
 
@@ -31,14 +43,17 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return CartScope(
       cart: _cart,
-      child: MaterialApp(
-        title: 'Shop App',
-        theme: ThemeData(
-          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-          useMaterial3: true,
-          textTheme: GoogleFonts.poppinsTextTheme(),
+      child: WishlistScope(
+        wishlist: _wishlist,
+        child: MaterialApp(
+          title: 'Shop App',
+          theme: ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+            useMaterial3: true,
+            textTheme: GoogleFonts.poppinsTextTheme(),
+          ),
+          home: const HomeScreen(),
         ),
-        home: const HomeScreen(),
       ),
     );
   }
@@ -55,6 +70,11 @@ class _HomeScreenState extends State<HomeScreen> {
   late Future<List<Product>> _productsFuture;
   String selectedFilter = 'All';
 
+  final TextEditingController _searchController = TextEditingController();
+  bool _searching = false;
+
+  // Categories shown in the chip row and the circle strip.
+  // "groceries" is intentionally excluded here AND filtered out of the feed.
   static const List<CategoryInfo> categories = [
     CategoryInfo('beauty', 'Beauty', Icons.brush),
     CategoryInfo('fragrances', 'Fragrances', Icons.spa),
@@ -85,6 +105,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _productsFuture = ApiService.fetchProducts();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 
   @override
@@ -128,7 +154,12 @@ class _HomeScreenState extends State<HomeScreen> {
               );
             }
 
-            final products = snapshot.data ?? [];
+            // Hide grocery products everywhere: home feed, chip filters,
+            // and search results.
+            final products = (snapshot.data ?? [])
+                .where((p) => p.category != 'groceries')
+                .toList();
+
             return _buildBody(products);
           },
         ),
@@ -142,36 +173,76 @@ class _HomeScreenState extends State<HomeScreen> {
       children: [
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          child: _searching
+              ? Row(
                   children: [
-                    Text(
-                      'Shop',
-                      style: GoogleFonts.poppins(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+                    Expanded(
+                      child: TextField(
+                        controller: _searchController,
+                        autofocus: true,
+                        onChanged: (_) => setState(() {}),
+                        decoration: InputDecoration(
+                          hintText: 'Search products...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              setState(() {
+                                _searching = false;
+                                _searchController.clear();
+                              });
+                            },
+                          ),
+                          filled: true,
+                          fillColor: Colors.white,
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
                       ),
                     ),
-                    Text(
-                      'Find what you need',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.grey,
+                    const WishlistIconButton(),
+                    const CartIconButton(),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Shop',
+                            style: GoogleFonts.poppins(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            'Find what you need',
+                            style: GoogleFonts.poppins(
+                              fontSize: 13,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    IconButton(
+                      onPressed: () {
+                        setState(() {
+                          _searching = true;
+                        });
+                      },
+                      icon: const Icon(Icons.search),
+                    ),
+                    const WishlistIconButton(),
+                    const CartIconButton(),
                   ],
                 ),
-              ),
-              IconButton(
-                onPressed: () {},
-                icon: const Icon(Icons.search),
-              ),
-              const CartIconButton(),
-            ],
-          ),
         ),
         SizedBox(
           height: 40,
@@ -200,9 +271,11 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 12),
         Expanded(
-          child: selectedFilter == 'All'
-              ? _buildHomeFeed(allProducts)
-              : _buildCategoryGrid(allProducts, selectedFilter),
+          child: _searchController.text.trim().isNotEmpty
+              ? _buildSearchResults(allProducts)
+              : selectedFilter == 'All'
+                  ? _buildHomeFeed(allProducts)
+                  : _buildCategoryGrid(allProducts, selectedFilter),
         ),
       ],
     );
@@ -386,6 +459,65 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
+  Widget _buildSearchResults(List<Product> allProducts) {
+    final query = _searchController.text.trim().toLowerCase();
+    final results = allProducts
+        .where((p) => p.name.toLowerCase().contains(query))
+        .toList();
+
+    if (results.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.search_off, size: 48, color: Colors.grey.shade400),
+              const SizedBox(height: 12),
+              Text(
+                'No products match "$query"',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            '${results.length} result${results.length == 1 ? '' : 's'}',
+            style: GoogleFonts.poppins(
+              fontSize: 12,
+              color: Colors.grey,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Expanded(
+          child: GridView.builder(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 0.66,
+            ),
+            itemCount: results.length,
+            itemBuilder: (context, index) {
+              return _ProductCard(product: results[index]);
+            },
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class CategoryInfo {
@@ -444,6 +576,54 @@ class CartIconButton extends StatelessWidget {
   }
 }
 
+class WishlistIconButton extends StatelessWidget {
+  const WishlistIconButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final wishlist = WishlistScope.of(context);
+    final count = wishlist.count;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        IconButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const WishlistScreen()),
+            );
+          },
+          icon: const Icon(Icons.favorite_border),
+        ),
+        if (count > 0)
+          Positioned(
+            right: 4,
+            top: 4,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              constraints: const BoxConstraints(minWidth: 18),
+              child: Text(
+                count > 99 ? '99+' : '$count',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.poppins(
+                  color: Colors.white,
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class _ProductCard extends StatelessWidget {
   final Product product;
 
@@ -452,6 +632,8 @@ class _ProductCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final wishlist = WishlistScope.of(context);
+    final isFav = wishlist.isFavorite(product);
 
     return GestureDetector(
       onTap: () {
@@ -472,25 +654,50 @@ class _ProductCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Container(
-                color: Colors.grey.shade100,
-                width: double.infinity,
-                child: Hero(
-                  tag: 'product-image-${product.id}',
-                  child: Image.network(
-                    product.imageUrl,
-                    fit: BoxFit.contain,
-                    loadingBuilder: (context, child, progress) {
-                      if (progress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      );
-                    },
-                    errorBuilder: (context, error, stack) => const Center(
-                      child: Icon(Icons.broken_image, color: Colors.grey),
+              child: Stack(
+                children: [
+                  Container(
+                    color: Colors.grey.shade100,
+                    width: double.infinity,
+                    child: Hero(
+                      tag: 'product-image-${product.id}',
+                      child: Image.network(
+                        product.imageUrl,
+                        fit: BoxFit.contain,
+                        loadingBuilder: (context, child, progress) {
+                          if (progress == null) return child;
+                          return const Center(
+                            child:
+                                CircularProgressIndicator(strokeWidth: 2),
+                          );
+                        },
+                        errorBuilder: (context, error, stack) => const Center(
+                          child:
+                              Icon(Icons.broken_image, color: Colors.grey),
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  Positioned(
+                    top: 2,
+                    right: 2,
+                    child: Material(
+                      color: Colors.white.withOpacity(0.9),
+                      shape: const CircleBorder(),
+                      child: IconButton(
+                        iconSize: 16,
+                        visualDensity: VisualDensity.compact,
+                        icon: Icon(
+                          isFav ? Icons.favorite : Icons.favorite_border,
+                          color: isFav ? Colors.red : Colors.grey.shade700,
+                        ),
+                        onPressed: () {
+                          wishlist.toggle(product);
+                        },
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             Padding(

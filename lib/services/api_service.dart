@@ -20,4 +20,22 @@ class ApiService {
         .map((json) => Product.fromJson(json as Map<String, dynamic>))
         .toList();
   }
+
+  /// Fetches all products in the given category.
+  static Future<List<Product>> fetchByCategory(String category) async {
+    final response = await http
+        .get(Uri.parse('$_baseUrl/products/category/$category'));
+
+    if (response.statusCode != 200) {
+      throw Exception(
+          'Failed to load category "$category" (${response.statusCode})');
+    }
+
+    final Map<String, dynamic> body = jsonDecode(response.body);
+    final List<dynamic> rawProducts = body['products'] as List<dynamic>;
+
+    return rawProducts
+        .map((json) => Product.fromJson(json as Map<String, dynamic>))
+        .toList();
+  }
 }

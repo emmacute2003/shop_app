@@ -77,7 +77,7 @@ class CartScreen extends StatelessWidget {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      '\$${item.product.price.toStringAsFixed(2)}',
+                                      '₦${item.product.price.toStringAsFixed(2)}',
                                       style: GoogleFonts.poppins(
                                         fontSize: 12,
                                         color: theme.colorScheme.primary,
@@ -152,7 +152,7 @@ class CartScreen extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                '\$${cart.total.toStringAsFixed(2)}',
+                                '₦${cart.total.toStringAsFixed(2)}',
                                 style: GoogleFonts.poppins(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,

@@ -135,7 +135,7 @@ class _WishlistCard extends StatelessWidget {
                   Row(
                     children: [
                       Text(
-                        '\$${product.price.toStringAsFixed(2)}',
+                        '₦${product.price.toStringAsFixed(2)}',
                         style: GoogleFonts.poppins(
                           fontSize: 13,
                           color: theme.colorScheme.primary,

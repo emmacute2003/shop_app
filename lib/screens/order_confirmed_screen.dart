@@ -88,7 +88,7 @@ class _OrderConfirmedScreenState extends State<OrderConfirmedScreen> {
                       const SizedBox(height: 10),
                       _Row(
                         label: 'Amount paid',
-                        value: '\$${widget.total.toStringAsFixed(2)}',
+                        value: '₦${widget.total.toStringAsFixed(2)}',
                         mono: true,
                         bold: true,
                       ),

@@ -177,7 +177,7 @@ class _ProductDetailScreenState extends State<ProductDetailScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    '\$${product.price.toStringAsFixed(2)}',
+                    '₦${product.price.toStringAsFixed(2)}',
                     style: GoogleFonts.poppins(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
@@ -341,7 +341,7 @@ class _RelatedCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        '\$${product.price.toStringAsFixed(2)}',
+                        '₦${product.price.toStringAsFixed(2)}',
                         style: GoogleFonts.poppins(
                           fontSize: 11,
                           color: theme.colorScheme.primary,

@@ -90,17 +90,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   _SummaryRow(
                     label:
                         '${cart.itemCount} item${cart.itemCount == 1 ? '' : 's'}',
-                    value: '\$${subtotal.toStringAsFixed(2)}',
+                    value: '₦${subtotal.toStringAsFixed(2)}',
                   ),
                   const SizedBox(height: 6),
                   _SummaryRow(
                     label: 'Shipping',
-                    value: '\$${shipping.toStringAsFixed(2)}',
+                    value: '₦${shipping.toStringAsFixed(2)}',
                   ),
                   const SizedBox(height: 6),
                   _SummaryRow(
                     label: 'Tax (8%)',
-                    value: '\$${tax.toStringAsFixed(2)}',
+                    value: '₦${tax.toStringAsFixed(2)}',
                   ),
                   const Padding(
                     padding: EdgeInsets.symmetric(vertical: 10),
@@ -108,7 +108,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   _SummaryRow(
                     label: 'Total',
-                    value: '\$${total.toStringAsFixed(2)}',
+                    value: '₦${total.toStringAsFixed(2)}',
                     bold: true,
                     color: theme.colorScheme.primary,
                   ),
@@ -273,7 +273,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ),
                     )
                   : Text(
-                      'Place Order · \$${total.toStringAsFixed(2)}',
+                      'Place Order · ₦${total.toStringAsFixed(2)}',
                       style: GoogleFonts.poppins(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
